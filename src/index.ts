@@ -6,10 +6,10 @@ import type {
   ILabels,
   ILogLevels,
   MatchConditionOperator,
-} from './lib/interfaces.ts';
-import { Stream } from './lib/stream.ts';
-import LoggerClass, { createLogger, DEFAULT_LOG_LEVELS, createMessage } from './lib/logger.ts';
-import type { LogFunction, LogMethods, LoggerWithLevels } from './lib/logger.ts';
+} from './interfaces.ts';
+import { Stream } from './stream.ts';
+import LoggerClass, { createLogger, DEFAULT_LOG_LEVELS, createMessage } from './logger.ts';
+import type { LogFunction, LogMethods, LoggerWithLevels } from './logger.ts';
 
 /**
  * MessageHub - the root sender all messages flow through. Exposes its

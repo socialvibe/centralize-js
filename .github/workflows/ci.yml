@@ -19,5 +19,21 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run build
-      - run: npm test
+      - run: npm run test:ci
+
+      - name: Upload Test Summary
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test-summary
+          path: junit.xml
+
+      - name: Test Report
+        uses: dorny/test-reporter@v3
+        if: always()
+        with:
+          name: Unit Tests
+          path: junit.xml
+          reporter: java-junit
+
       - run: npm run check-release -- origin/${{ github.event.pull_request.base.ref }}

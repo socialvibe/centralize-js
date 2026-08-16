@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import centralizeDefault, { Hub, Logger, LoggerClass, LOG_LEVELS, CreateMessage } from '../centralize.ts';
-import type { IMessage } from '../centralize.ts';
+import centralizeDefault, { Hub, Logger, LoggerClass, LOG_LEVELS, CreateMessage } from '../index.ts';
+import type { IMessage } from '../index.ts';
 
 describe('centralize', () => {
   describe('Hub', () => {

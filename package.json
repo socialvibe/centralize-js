@@ -3,12 +3,12 @@
   "version": "2.0.0",
   "description": "A simple JS message hub",
   "type": "module",
-  "main": "./dist/centralize.js",
-  "types": "./dist/centralize.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/centralize.d.ts",
-      "default": "./dist/centralize.js"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     }
   },
   "files": [
@@ -22,6 +22,7 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "node --test",
+    "test:ci": "node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=junit.xml",
     "test:watch": "node --test --watch",
     "coverage": "node --test --experimental-test-coverage",
     "check-release": "node scripts/check-release.ts",

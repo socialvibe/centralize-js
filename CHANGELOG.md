@@ -22,6 +22,7 @@
   * Changed: rewrote the test suite from Jest to Node's built-in `node:test` runner (no extra flags needed on Node 24); removed `jest`, `ts-jest`, and `babel-minify`/`rollup` (unused once there's no bundling step).
   * Changed: CI/CD moved from Travis to GitHub Actions — PRs run typecheck/build/test and a version+CHANGELOG check; merges to `master` publish to GitHub Packages and cut a GitHub release.
   * Changed: upgraded to TypeScript 7.x and target Node 24.
+  * Changed: the PR CI workflow now publishes unit test results as a check run (via `dorny/test-reporter`) and a `junit.xml` artifact, using Node's built-in JUnit test reporter.
 
 ## v1.1.4
 * Last release published to npmjs.com as `centralize-js`, prior to this fork's modernization under PI-3664.
