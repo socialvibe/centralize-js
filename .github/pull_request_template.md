@@ -1,23 +1,26 @@
-<!--
-Thanks for the contribution! Please fill in the sections below.
--->
+### JIRA
 
-## Ticket
+ADD_TICKET_LINKS
 
-<!-- e.g. [PI-3664](https://infillion.atlassian.net/browse/PI-3664) -->
+### Description
 
-## What changed
+DESCRIBE_CHANGES
 
-<!-- Short description of the change and why it was needed. -->
+### Testing
 
-## CHANGELOG
+DESCRIBE_TESTING
 
-<!-- Confirm package.json's version was bumped and CHANGELOG.md has a matching
-`## vX.Y.Z` heading with an entry for this ticket. -->
+### Additional Context
 
-- [ ] `package.json` version bumped (patch/minor/major)
-- [ ] `CHANGELOG.md` updated under a matching `## vX.Y.Z` heading
+OPTIONAL_ADDITIONAL_INFO
 
-## Testing
+### Related PRs
 
-<!-- How was this verified? e.g. `npm run typecheck`, `npm run build`, `npm test` -->
+OPTIONAL_ADD_PR_LINKS
+
+### Checks
+
+- [ ] Includes unit test coverage _(if applicable)_
+- [ ] Includes functional test coverage _(at feature-level, if applicable)_
+- [ ] Updated [CHANGELOG.md](../CHANGELOG.md) _(if applicable)_
+- [ ] Incremented the patch version in [package.json](../package.json)
