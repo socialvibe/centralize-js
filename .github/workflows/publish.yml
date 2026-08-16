@@ -44,11 +44,8 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Tag and create GitHub release
+      - name: Create GitHub release
         if: steps.tag_check.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git tag "v${{ steps.version.outputs.version }}"
-          git push origin "v${{ steps.version.outputs.version }}"
-          gh release create "v${{ steps.version.outputs.version }}" --generate-notes
+        run: gh release create "v${{ steps.version.outputs.version }}" --generate-notes

@@ -47,7 +47,7 @@ class MessageHub implements ISender {
 }
 
 export const Hub = new MessageHub();
-export { LoggerClass };
+export { LoggerClass, createLogger };
 export { DEFAULT_LOG_LEVELS as LOG_LEVELS };
 
 const defaultLogger = createLogger(Hub, DEFAULT_LOG_LEVELS);

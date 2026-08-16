@@ -31,7 +31,12 @@ scope from GitHub Packages:
 
 ```
 @socialvibe:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
 ```
+
+GitHub Packages requires authentication even to install public packages. Set
+`GITHUB_TOKEN` in your shell (or CI secrets) to a personal access token with
+the `read:packages` scope before running `npm install`.
 
 Then install:
 
@@ -67,7 +72,7 @@ send a message.
 You can use the utility function `CreateMessage` to create an empty message.
 
 ```javascript
-import {CreateMessage} from '@socialvibe/centralize';
+import { CreateMessage } from '@socialvibe/centralize';
 const myAnalyticsMessage = CreateMessage(10, {type: 'analytics'});
 myAnalyticsMessage.value = 'val';
 ```
@@ -77,7 +82,7 @@ myAnalyticsMessage.value = 'val';
 ### Using the logger
 
 ```javascript
-import Logger from '@socialvibe/centralize';
+import { Logger } from '@socialvibe/centralize';
 
 Logger.info('this is an info log');
 Logger.debug('this is a debug log');
@@ -89,8 +94,10 @@ Logger.debug('this is a debug log');
 You can use your own custom methods by creating a new logger with your own log levels:
 
 ```javascript
-import {Hub, LoggerClass} from '@socialvibe/centralize';
+import { Hub, LoggerClass, createLogger } from '@socialvibe/centralize';
 const myLogger = new LoggerClass(Hub, {foo: 10, bar: 20});
+// or, equivalently:
+const myLogger = createLogger(Hub, {foo: 10, bar: 20});
 // myLogger.foo('my message');
 // myLogger.bar('my other message');
 ```

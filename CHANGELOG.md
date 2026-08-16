@@ -24,6 +24,14 @@
   * Changed: upgraded to TypeScript 7.x and target Node 24.
   * Changed: the PR CI workflow now publishes unit test results as a check run (via `dorny/test-reporter`) and a `junit.xml` artifact, using Node's built-in JUnit test reporter.
   * Changed: `.github/pull_request_template.md` now matches the `truex-bluescript-js` template.
+  * Changed: flattened the outer `describe()` wrapper in each test file, since `dorny/test-reporter`'s JUnit parser doesn't handle nested test suites.
+  * Changed: `.github/workflows/publish.yml` no longer runs `git tag`/`git push` before `gh release create` — `gh release create` already creates the tag as part of its flow.
+  * Fixed: `StreamFilter` subclasses (`matchAll()`, `matchLabels()`, `matchCondition()`) attached to their parent stream eagerly in the constructor, even if the substream itself was never given a receiver, and could never reattach after a full detach. Attaching now happens on the first `addReceiver()` call instead, so it's symmetric with the existing detach-on-last-`removeReceiver()` behavior and substreams can be reattached.
+  * Added: log level names must now be alphanumeric (`/^[a-zA-Z0-9]+$/`); `Logger` throws otherwise, in addition to the existing check for names colliding with `Logger`'s own members.
+  * Added: `createLogger` is now re-exported from the package entry point alongside `LoggerClass`.
+  * Fixed: `scripts/check-release.ts` required only *at least one* `## v<version>` heading in `CHANGELOG.md`; it now requires exactly one.
+  * Added: `.github/workflows/ci.yml` now grants `permissions: contents: read, checks: write` so `dorny/test-reporter` can reliably create its check run.
+  * Changed: `README.md`'s installation instructions now cover GitHub Packages authentication (`.npmrc` `_authToken` line and the required `read:packages` PAT scope).
 
 ## v1.1.4
 * Last release published to npmjs.com as `centralize-js`, prior to this fork's modernization under PI-3664.

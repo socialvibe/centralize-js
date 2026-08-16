@@ -140,23 +140,26 @@ export class Stream {
 
 /**
  * StreamFilter - base class for substreams that filter messages coming from
- * a parent stream. The filter attaches its rule to the parent as soon as
- * it's constructed, and detaches once its last receiver is removed, so
- * unused filters don't keep leaking receivers on their parent.
+ * a parent stream. The filter attaches its rule to the parent once the
+ * first receiver is added, and detaches once the last receiver is removed,
+ * so unused filters don't keep leaking receivers on their parent. Adding a
+ * receiver again after a full detach reattaches it.
  */
 abstract class StreamFilter extends Stream {
   private readonly _boundRule: IReceiver = (msg) => this.rule(msg);
-
-  constructor(parentStream: Stream) {
-    super(parentStream);
-    parentStream.addReceiver(this._boundRule);
-  }
 
   /**
    * rule - decides whether a message received from the parent stream
    * should be forwarded to this stream's own receivers
    */
   protected abstract rule(msg: IMessage): void;
+
+  override addReceiver(receiver: IReceiver): () => void {
+    if (!this.hasReceivers) {
+      this.parentStream?.addReceiver(this._boundRule);
+    }
+    return super.addReceiver(receiver);
+  }
 
   override removeReceiver(receiver: IReceiver): void {
     super.removeReceiver(receiver);

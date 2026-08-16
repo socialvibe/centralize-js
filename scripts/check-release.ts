@@ -40,13 +40,13 @@ function isGreaterVersion(next: string, base: string): boolean {
 }
 
 /**
- * hasChangelogHeading - whether CHANGELOG.md has a `## v<version>` heading
- * for the given version
+ * countChangelogHeadings - counts how many times a `## v<version>` heading
+ * for the given version appears in CHANGELOG.md
  */
-function hasChangelogHeading(version: string): boolean {
+function countChangelogHeadings(version: string): number {
   const changelog = readFileSync('CHANGELOG.md', 'utf8');
   const heading = `## v${version}`;
-  return changelog.split('\n').some((line) => line.trim() === heading);
+  return changelog.split('\n').filter((line) => line.trim() === heading).length;
 }
 
 /**
@@ -67,8 +67,13 @@ function main(): void {
     process.exit(1);
   }
 
-  if (!hasChangelogHeading(nextVersion)) {
+  const headingCount = countChangelogHeadings(nextVersion);
+  if (headingCount === 0) {
     console.error(`CHANGELOG.md is missing a "## v${nextVersion}" heading.`);
+    process.exit(1);
+  }
+  if (headingCount > 1) {
+    console.error(`CHANGELOG.md has ${headingCount} "## v${nextVersion}" headings; there must be exactly one.`);
     process.exit(1);
   }
 

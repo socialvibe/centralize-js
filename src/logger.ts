@@ -66,15 +66,21 @@ export class Logger<L extends ILogLevels = typeof DEFAULT_LOG_LEVELS> {
 
   /**
    * _createLogMethods - creates this logger's logging method for each
-   * configured log level, throwing if a level name would collide with one
-   * of Logger's own members
+   * configured log level, throwing if a level name isn't alphanumeric or
+   * would collide with one of Logger's own members
    */
   private _createLogMethods(): void {
     const reservedNames = Object.getOwnPropertyNames(Logger.prototype);
-    const collision = Object.keys(this._logLevels).find((key) => reservedNames.includes(key));
-    if (collision !== undefined) {
-      throw new Error(`Log level name "${collision}" collides with an existing Logger method`);
-    }
+    const validName = /^[a-zA-Z0-9]+$/;
+
+    Object.keys(this._logLevels).forEach((key) => {
+      if (!validName.test(key)) {
+        throw new Error(`Log level name "${key}" must contain only letters and numbers`);
+      }
+      if (reservedNames.includes(key)) {
+        throw new Error(`Log level name "${key}" collides with an existing Logger method`);
+      }
+    });
 
     const methods = this as unknown as Record<string, LogFunction>;
     Object.keys(this._logLevels).forEach((key) => {
