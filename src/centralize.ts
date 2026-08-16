@@ -1,29 +1,71 @@
-import { ISender, IMessage } from './lib/interfaces';
-import LoggerClass, { DEFAULT_LOG_LEVELS, createMessage } from './lib/logger';
-import { Stream } from './lib/stream';
+import type {
+  ISender,
+  IMessage,
+  IReceiver,
+  IInterceptor,
+  ILabels,
+  ILogLevels,
+  MatchConditionOperator,
+} from './lib/interfaces.ts';
+import { Stream } from './lib/stream.ts';
+import LoggerClass, { createLogger, DEFAULT_LOG_LEVELS, createMessage } from './lib/logger.ts';
+import type { LogFunction, LogMethods, LoggerWithLevels } from './lib/logger.ts';
 
-class MessageHub implements ISender{
+/**
+ * MessageHub - the root sender all messages flow through. Exposes its
+ * underlying stream via `messages` so consumers can filter and subscribe
+ * to it.
+ */
+class MessageHub implements ISender {
   private _stream: Stream;
+
   constructor() {
     this._stream = new Stream();
   }
 
-  get messages() {
+  /**
+   * messages - the root stream every message sent to this hub is
+   * published to
+   */
+  get messages(): Stream {
     return this._stream;
   }
 
-  send(msg: IMessage) {
-    if (msg.timestamp === undefined) {
-      msg.timestamp = new Date();
-    }
-    this._stream.send(msg);
+  /**
+   * send - publishes a message to the hub's stream, on a copy with a
+   * timestamp (filled in when one isn't already a valid Date) and labels
+   * (defaulted to an empty object when missing)
+   */
+  send(msg: IMessage): void {
+    const message: IMessage = {
+      ...msg,
+      timestamp: msg.timestamp instanceof Date ? msg.timestamp : new Date(),
+      labels: msg.labels ?? {},
+    };
+    this._stream.send(message);
   }
 }
 
 export const Hub = new MessageHub();
 export { LoggerClass };
 export { DEFAULT_LOG_LEVELS as LOG_LEVELS };
-const defaultLogger = new LoggerClass(Hub, DEFAULT_LOG_LEVELS);
-export {defaultLogger as Logger};
-export {createMessage as CreateMessage};
+
+const defaultLogger = createLogger(Hub, DEFAULT_LOG_LEVELS);
+export { defaultLogger as Logger };
+export { createMessage as CreateMessage };
+
+export type {
+  IMessage,
+  ISender,
+  IReceiver,
+  IInterceptor,
+  ILabels,
+  ILogLevels,
+  MatchConditionOperator,
+  Stream,
+  LogFunction,
+  LogMethods,
+  LoggerWithLevels,
+};
+
 export default defaultLogger;

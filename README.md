@@ -2,9 +2,6 @@
 <p align="center">
   A simple JS message hub
 </p>
-<p align="center">
-  <img src="https://api.travis-ci.org/davinche/centralize.svg?branch=master" alt="build status"/>
-</p>
 
 <!-- vim-markdown-toc GFM -->
 
@@ -21,12 +18,27 @@
   * [Adding an interceptor](#adding-an-interceptor)
   * [Removing an interceptor](#removing-an-interceptor)
 * [Log Levels](#log-levels)
+* [Commits](#commits)
+* [Versioning & Releases](#versioning--releases)
 
 <!-- vim-markdown-toc -->
 
 ## Installation
 
-`npm install centralize-js --save`
+This package is published to GitHub Packages as `@socialvibe/centralize`. Add
+a `.npmrc` (or update your project's) so npm knows to resolve the `@socialvibe`
+scope from GitHub Packages:
+
+```
+@socialvibe:registry=https://npm.pkg.github.com
+```
+
+Then install:
+
+`npm install @socialvibe/centralize --save`
+
+Requires Node 24+. Written in TypeScript (targeting TypeScript 7), shipped
+as native ESM with bundled type declarations.
 
 ## Messages
 
@@ -55,7 +67,7 @@ send a message.
 You can use the utility function `CreateMessage` to create an empty message.
 
 ```javascript
-import {CreateMessage} from 'centralize-js';
+import {CreateMessage} from '@socialvibe/centralize';
 const myAnalyticsMessage = CreateMessage(10, {type: 'analytics'});
 myAnalyticsMessage.value = 'val';
 ```
@@ -65,7 +77,7 @@ myAnalyticsMessage.value = 'val';
 ### Using the logger
 
 ```javascript
-import Logger from 'centralize-js';
+import Logger from '@socialvibe/centralize';
 
 Logger.info('this is an info log');
 Logger.debug('this is a debug log');
@@ -77,26 +89,16 @@ Logger.debug('this is a debug log');
 You can use your own custom methods by creating a new logger with your own log levels:
 
 ```javascript
-import {Hub, LoggerClass} from 'centralize-js';
+import {Hub, LoggerClass} from '@socialvibe/centralize';
 const myLogger = new LoggerClass(Hub, {foo: 10, bar: 20});
 // myLogger.foo('my message');
 // myLogger.bar('my other message');
 ```
 
-Or you can change the log levels using the `setLogLevels()` method.
-
-```javascript
-import Logger from 'centralize-js';
-Logger.setLogLevels({foo: 10, bar: 20});
-
-// Logger.foo('my message');
-// Logger.bar('my other message');
-```
-
 ### Manually
 
 ```javascript
-import { Hub } from 'centralize-js';
+import { Hub } from '@socialvibe/centralize';
 
 // Create the message manually
 const message = {
@@ -120,7 +122,7 @@ A receiver is any function that can receive a message.
 To receive **all messages**, you can attach to the global stream:
 
 ```javascript
-import { Hub, Logger } from 'centralize-js';
+import { Hub, Logger } from '@socialvibe/centralize';
 
 const myReceiver = function(message) {
   console.log(message.value);
@@ -141,8 +143,9 @@ receives all of the messages from the global stream. You can then apply the log
 levels to the substream instead of the global stream.
 
 ```javascript
-const stream = Hub.messages.matchAll()
-  .setLogLevel(LOG_LEVELS.error).addReceiver(myreceiver);
+const stream = Hub.messages.matchAll();
+stream.logLevel = LOG_LEVELS.error;
+stream.addReceiver(myreceiver);
 ```
 
 ### Filter received messages by labels
@@ -150,7 +153,7 @@ const stream = Hub.messages.matchAll()
 You can filter for specific messages by applying labels a message must match:
 
 ```javascript
-import { Hub, Logger } from 'centralize-js';
+import { Hub, Logger } from '@socialvibe/centralize';
 
 const myAppMessagesReceiver = function(message) {
   console.log(message.value);
@@ -167,7 +170,7 @@ Logger.debug('my-other-app message', {app: 'not-my-app'});
 ### Filtering received messages by match conditions
 
 ```javascript
-import { Hub, Logger } from 'centralize-js';
+import { Hub, Logger } from '@socialvibe/centralize';
 
 // Scenario: 3 environments (development, staging, production)
 // receiver should only be triggered for staging and production
@@ -176,9 +179,8 @@ const stagingAndProductionReceiver = function(message) {
 };
 
 Hub.messages
-  .matchConditions('env', 'IN', ['staging', 'production'])
+  .matchCondition('env', 'IN', ['staging', 'production'])
   .addReceiver(stagingAndProductionReceiver);
-...
 
 Logger.debug('my log in development', {env: 'development'});
 Logger.debug('staging log', {env: 'staging'});
@@ -186,7 +188,7 @@ Logger.debug('production log', {env: 'production'});
 
 // console.log only prints out 'staging log' and 'production log'
 ```
-`matchConditions` accepts the following **operators**:
+`matchCondition` accepts the following **operators**:
 1. 'IN'
 2. 'NOT_IN'
 3. 'NOT'
@@ -197,8 +199,8 @@ Logger.debug('production log', {env: 'production'});
 Interceptors gives you the opportunity to change a message before it is passed
 down the stream.
 
-An interceptor must either return a message, or `null` to stop the message from
-propogating further.
+An interceptor must either return a message, or `null`/`undefined` to stop the
+message from propagating further.
 
 ### Adding an interceptor
 
@@ -217,7 +219,7 @@ Hub.messages.addReceiver(myReceiver);
 
 
 Hub.messages.send({
-  value: 'foo';
+  value: 'foo'
 });
 
 // console.log outputs 'bar'
@@ -238,8 +240,8 @@ Hub.messages.removeInterceptor(myInterceptor);
 To set global log level for messages:
 
 ```javascript
-import { Hub, LOG_LEVELS } from 'centralize-js';
-Hub.messages.setLogLevel(LOG_LEVELS.error);
+import { Hub, LOG_LEVELS } from '@socialvibe/centralize';
+Hub.messages.logLevel = LOG_LEVELS.error;
 
 // only messages that are 'errors' and higher will be dispatched.
 ```
@@ -247,16 +249,31 @@ Hub.messages.setLogLevel(LOG_LEVELS.error);
 You can also set a loglevels for filtered messages:
 
 ```javascript
-import { Hub, LOG_LEVELS } from 'centralize-js';
+import { Hub, LOG_LEVELS } from '@socialvibe/centralize';
 
 const myAppReceiver = function(message) {
   console.log(message.value);
 };
 
 const messages = Hub.messages.matchLabels({app: 'my-app'});
-messages.setLogLevel(LOG_LEVELS.error);
+messages.logLevel = LOG_LEVELS.error;
 messages.addReceiver(myAppReceiver);
 ```
 
 **Note**: that the global log level precedes everything, so setting a 'lower' log level for
 matched messages will have no effect if the global log level is 'higher'.
+
+## Commits
+
+Commit messages use `<TICKET> - <MESSAGE>` (e.g. `PI-3670 - Restructure ad tags catalog`),
+where `<TICKET>` is the Jira ticket the branch was created for (see `AGENTS.md`).
+
+## Versioning & Releases
+
+Every PR to `master` bumps `version` in `package.json` (patch by default; minor/major when
+warranted) and adds an entry to `CHANGELOG.md` under a matching `## vX.Y.Z` heading. The
+`ci.yml` workflow enforces this on every PR via `npm run check-release`.
+
+Once a PR merges to `master`, the `publish.yml` workflow publishes the new version to
+GitHub Packages, tags the commit `vX.Y.Z`, and creates the matching GitHub release.
+

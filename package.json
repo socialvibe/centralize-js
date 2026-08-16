@@ -1,49 +1,48 @@
 {
-  "name": "centralize-js",
-  "version": "1.1.4",
-  "description": "",
+  "name": "@socialvibe/centralize",
+  "version": "2.0.0",
+  "description": "A simple JS message hub",
+  "type": "module",
   "main": "./dist/centralize.js",
-  "types": "dist/centralize.d.ts",
+  "types": "./dist/centralize.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/centralize.d.ts",
+      "default": "./dist/centralize.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "!src/**/__tests__",
+    "CHANGELOG.md"
+  ],
   "scripts": {
-    "start": "npm run clean && npm run build",
-    "build": "tsc",
-    "clean": "rimraf ./dist",
-    "test": "jest",
-    "coverage": "jest --coverage",
-    "watch": "jest --watchAll"
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test",
+    "test:watch": "node --test --watch",
+    "coverage": "node --test --experimental-test-coverage",
+    "check-release": "node scripts/check-release.ts",
+    "prepack": "npm run clean && npm run build"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/davinche/centralize.git"
+    "url": "git+https://github.com/socialvibe/centralize-js.git"
   },
   "keywords": [],
   "author": "Vincent Cheung",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/davinche/centralize/issues"
+    "url": "https://github.com/socialvibe/centralize-js/issues"
   },
-  "homepage": "https://github.com/davinche/centralize#readme",
+  "homepage": "https://github.com/socialvibe/centralize-js#readme",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "devDependencies": {
-    "@types/jest": "^23.3.12",
-    "babel-minify": "^0.4.0",
-    "jest": "^23.6.0",
-    "rimraf": "^2.6.2",
-    "rollup": "^0.57.1",
-    "ts-jest": "^22.4.2",
-    "typescript": "^2.8.1"
-  },
-  "jest": {
-    "transform": {
-      "^.+\\.tsx?$": "ts-jest"
-    },
-    "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
-    "moduleFileExtensions": [
-      "ts",
-      "tsx",
-      "js",
-      "jsx",
-      "json",
-      "node"
-    ]
+    "@types/node": "^24.0.0",
+    "typescript": "^7.0.2"
   }
 }

@@ -1,223 +1,249 @@
-import {
-  ILabel,
+import type {
+  ILabels,
   IMessage,
-  ISender,
   IReceiver,
-} from './interfaces';
+  IInterceptor,
+  MatchConditionOperator,
+} from './interfaces.ts';
 
+/**
+ * Stream - a channel that messages can be sent to and received from. Streams
+ * can be filtered into narrower substreams via matchAll(), matchLabels(),
+ * and matchCondition().
+ */
 export class Stream {
-  _receivers: Array<IReceiver> = [];
-  _interceptors: Array<IReceiver> = [];
-  _parentStream: Stream|null;
-  _logLevel: number | undefined;
+  private _receivers: IReceiver[] = [];
+  private _interceptors: IInterceptor[] = [];
+  private readonly _parentStream: Stream | undefined;
+  private _logLevel: number | undefined;
 
-  constructor(parentStream: Stream|null = null) {
+  constructor(parentStream?: Stream) {
+    if (parentStream !== undefined && !(parentStream instanceof Stream)) {
+      throw new Error('parentStream must be a Stream or undefined');
+    }
     this._parentStream = parentStream;
   }
 
   /**
-   * MatchAll - creates a new stream that passes all messages
-   * @returns {object} stream
+   * matchAll - creates a substream that receives every message sent to this
+   * stream
    */
-  matchAll() : Stream {
+  matchAll(): Stream {
     return new MatchAllStream(this);
   }
 
   /**
-   * MatchLabels - creates a new stream that filters for specified labels
-   * @param {object} labels
-   * @returns {object} stream
+   * matchLabels - creates a substream that only receives messages whose
+   * labels match all of the given labels
    */
-  matchLabels(labels: ILabel) : Stream {
+  matchLabels(labels: ILabels): Stream {
     return new MatchLabelsStream(this, labels);
   }
 
   /**
-   * MatchCondition - creates a new stream that filters messages for the matching condition
-   * @param {string} key - the name of the label
-   * @param {string} operator - the conditional operator (IN | NOT_IN | NOT)
-   * @param {any} value - the value to check against
-   * @returns {object} stream
+   * matchCondition - creates a substream that only receives messages whose
+   * label at `key` satisfies `operator` against `value`
    */
-  matchCondition(key: string, operator: string, value: any) : Stream {
-    return new MatchConditionStream(this, {key, operator, value});
+  matchCondition(key: string, operator: MatchConditionOperator, value: unknown): Stream {
+    return new MatchConditionStream(this, { key, operator, value });
   }
 
   /**
-   * SetLogLevel
-   * @param {number} loglevel
+   * logLevel - the minimum log level a message must have to reach this
+   * stream's receivers
    */
-  setLogLevel(logLevel: number) {
+  get logLevel(): number | undefined {
+    return this._logLevel;
+  }
+
+  set logLevel(logLevel: number) {
     this._logLevel = logLevel;
-    return this;
   }
 
   /**
-   * AddReceiver - add a new consumer of the stream
-   * @param {object} consumer
+   * addReceiver - registers a consumer of messages sent to this stream
    */
-  addReceiver(c: IReceiver) {
-    this._receivers.push(c);
+  addReceiver(receiver: IReceiver): () => void {
+    this._receivers.push(receiver);
     return () => {
-      this.removeReceiver(c);
+      this.removeReceiver(receiver);
     };
   }
 
   /**
-   * RemoveReceiver - remove a consumer from the stream
-   * @param {object} consumer
+   * removeReceiver - unregisters a consumer from this stream
    */
-  removeReceiver(c: IReceiver) {
-    this._receivers = this._receivers.filter((consumer) => consumer !== c);
+  removeReceiver(receiver: IReceiver): void {
+    this._receivers = this._receivers.filter((r) => r !== receiver);
   }
 
   /**
-   * AddInterceptor - add an interceptor for the stream
-   * @param {object} inteceptor
+   * addInterceptor - registers an interceptor that can modify or drop
+   * messages before they reach this stream's receivers
    */
-  addInterceptor(c: IReceiver) {
-    this._interceptors.push(c);
-    return (() => {
-      this.removeInterceptor(c);
-    });
+  addInterceptor(interceptor: IInterceptor): () => void {
+    this._interceptors.push(interceptor);
+    return () => {
+      this.removeInterceptor(interceptor);
+    };
   }
 
   /**
-   * RemoveInterceptor - remove an interceptor from the stream
-   * @param {object} consumer
+   * removeInterceptor - unregisters an interceptor from this stream
    */
-  removeInterceptor(c: IReceiver) {
-    this._interceptors = this._interceptors.filter((consumer) => consumer !== c);
+  removeInterceptor(interceptor: IInterceptor): void {
+    this._interceptors = this._interceptors.filter((i) => i !== interceptor);
   }
 
   /**
-   * Send - sends a message to all consumers
-   * @param {object} Message
+   * send - runs a message through this stream's interceptors, in
+   * registration order, then forwards the result to all receivers. An
+   * interceptor may stop propagation by returning null or undefined; any
+   * other non-object return value is ignored and the previous message
+   * carries on to the next interceptor instead.
    */
-  send(msg: IMessage) {
-    if (typeof this._logLevel !== 'undefined' && msg.logLevel < (this._logLevel as number)) {
+  send(msg: IMessage): void {
+    if (this._logLevel !== undefined && (typeof msg.logLevel !== 'number' || msg.logLevel < this._logLevel)) {
       return;
     }
 
-    let m : IMessage | null = msg;
-    if (this._interceptors.length) {
-      m = this._interceptors.reduce((m, interceptor) : any => {
-        return interceptor(m);
-      }, m);
+    let current: IMessage = msg;
+    for (const interceptor of this._interceptors) {
+      const result = interceptor(current);
+      if (result == null) {
+        return;
+      }
+      if (typeof result === 'object') {
+        current = result;
+      }
     }
 
-    if (!m) {
-      return;
-    }
+    this._receivers.forEach((receiver) => receiver(current));
+  }
 
-    this._receivers.forEach((consumer) => {
-      consumer((m as IMessage));
-    });
+  /**
+   * hasReceivers - whether this stream currently has any registered
+   * receivers
+   */
+  protected get hasReceivers(): boolean {
+    return this._receivers.length > 0;
+  }
+
+  /**
+   * parentStream - the stream this stream was filtered from, or undefined
+   * for a root stream
+   */
+  protected get parentStream(): Stream | undefined {
+    return this._parentStream;
   }
 }
 
-// Abstract class for dealing with Message Filtering Streams
+/**
+ * StreamFilter - base class for substreams that filter messages coming from
+ * a parent stream. The filter attaches its rule to the parent as soon as
+ * it's constructed, and detaches once its last receiver is removed, so
+ * unused filters don't keep leaking receivers on their parent.
+ */
 abstract class StreamFilter extends Stream {
-  abstract rule(m: IMessage);
-}
+  private readonly _boundRule: IReceiver = (msg) => this.rule(msg);
 
-// Stream that matches all labels
-class MatchAllStream extends StreamFilter {
   constructor(parentStream: Stream) {
     super(parentStream);
-    this.rule = this.rule.bind(this);
-    parentStream.addReceiver(this.rule);
+    parentStream.addReceiver(this._boundRule);
   }
 
-  rule(m: IMessage) {
-    this.send(m);
+  /**
+   * rule - decides whether a message received from the parent stream
+   * should be forwarded to this stream's own receivers
+   */
+  protected abstract rule(msg: IMessage): void;
+
+  override removeReceiver(receiver: IReceiver): void {
+    super.removeReceiver(receiver);
+    if (!this.hasReceivers) {
+      this.parentStream?.removeReceiver(this._boundRule);
+    }
   }
 }
 
-// Stream that ensures all labels from a message matches the labels for the stream
+/**
+ * MatchAllStream - a substream that forwards every message from its parent
+ */
+class MatchAllStream extends StreamFilter {
+  protected rule(msg: IMessage): void {
+    this.send(msg);
+  }
+}
+
+/**
+ * MatchLabelsStream - a substream that only forwards messages whose labels
+ * match all of the labels it was created with
+ */
 class MatchLabelsStream extends StreamFilter {
-  /**
-   * constructor
-   * @param {object} parentStream
-   * @param {object} labels - the labels to match messages with
-   */
-  constructor(parentStream: Stream, private _labels: ILabel={}) {
-    super(parentStream);
-    if (!Object.keys(this._labels).length) {
-      throw new Error('No Labels were provided to the MatchLabelsStream');
+  private readonly _labels: ILabels;
+
+  constructor(parentStream: Stream, labels: ILabels = {}) {
+    const safeLabels = labels ?? {};
+    if (!Object.keys(safeLabels).length) {
+      throw new Error('No labels were provided to matchLabels()');
     }
-    this.rule = this.rule.bind(this);
-    parentStream.addReceiver(this.rule);
+    super(parentStream);
+    this._labels = safeLabels;
   }
 
-  /**
-   * Rule - the label matching implementation
-   * @param {object} message - the message with the labels to check against
-   */
-  rule(m: IMessage) {
-      // Make sure the message matches all of our desired labels
-      if (Object.keys(this._labels).every((k) => this._labels[k] === m.labels[k])) {
-        this.send(m);
-      }
-  }
-
-  removeReceiver(c: IReceiver) {
-    super.removeReceiver(c);
-
-    /* istanbul ignore next */
-    if (!this._receivers.length && this._parentStream) {
-      this._parentStream.removeReceiver(this.rule);
+  protected rule(msg: IMessage): void {
+    if (Object.keys(this._labels).every((key) => this._labels[key] === msg.labels[key])) {
+      this.send(msg);
     }
   }
 }
 
+/**
+ * IMatchCondition - the condition a MatchConditionStream filters messages by
+ */
 interface IMatchCondition {
   key: string;
-  operator: string;
-  value: any;
+  operator: MatchConditionOperator;
+  value: unknown;
 }
 
+/**
+ * MatchConditionStream - a substream that only forwards messages whose
+ * label at `condition.key` satisfies `condition.operator` against
+ * `condition.value`
+ */
 class MatchConditionStream extends StreamFilter {
-  // used in matchCondition
-  static operators = ['IN', 'NOT_IN', 'NOT'];
-  /**
-   * constructor
-   * @param {object} parentStream
-   * @param {object} condition - the condition to match against
-   */
-  constructor(parentStream: Stream, private _matchCondition: IMatchCondition) {
-    super(parentStream);
-    if (MatchConditionStream.operators.indexOf(this._matchCondition.operator.toUpperCase()) < 0) {
-      throw new Error('Invalid operator for MatchConditionStream');
+  private static readonly _operators: MatchConditionOperator[] = ['IN', 'NOT_IN', 'NOT'];
+
+  private readonly _condition: IMatchCondition;
+
+  constructor(parentStream: Stream, condition: IMatchCondition) {
+    if (!MatchConditionStream._operators.includes(condition.operator)) {
+      throw new Error('Invalid operator for matchCondition()');
     }
-    this.rule = this.rule.bind(this);
-    this._matchCondition.operator = this._matchCondition.operator.toUpperCase();
-    parentStream.addReceiver(this.rule);
+    super(parentStream);
+    this._condition = condition;
   }
 
-  rule(m: IMessage) {
-    // make sure we're just dealing with an array for simplicity
-    if (!(this._matchCondition.value instanceof Array)) {
-      this._matchCondition.value = [this._matchCondition.value];
-    }
+  protected rule(msg: IMessage): void {
+    const values = Array.isArray(this._condition.value) ? this._condition.value : [this._condition.value];
+    const labelValue = msg.labels[this._condition.key];
 
     let shouldSend = false;
-    const val = (this._matchCondition.value as Array<any>);
-
-    switch(this._matchCondition.operator) {
+    switch (this._condition.operator) {
       case 'IN':
-        shouldSend = val.indexOf(m.labels[this._matchCondition.key]) >= 0;
+        shouldSend = values.includes(labelValue);
         break;
       case 'NOT_IN':
-        shouldSend = val.indexOf(m.labels[this._matchCondition.key]) < 0;
+        shouldSend = !values.includes(labelValue);
         break;
       case 'NOT':
-        shouldSend = m.labels[this._matchCondition.key] !== val[0];
+        shouldSend = labelValue !== values[0];
         break;
     }
 
     if (shouldSend) {
-      this.send(m);
+      this.send(msg);
     }
   }
 }

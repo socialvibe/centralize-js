@@ -1,127 +1,94 @@
-import Logger from '../logger';
-declare var global: any;
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import Logger, { createLogger } from '../logger.ts';
+import type { ISender, IMessage, ILogLevels } from '../interfaces.ts';
 
-const origDate = Date;
-const staticDate = new Date();
+/**
+ * createSender - a test double ISender that records every message it's
+ * sent
+ */
+function createSender(): { sender: ISender; sent: IMessage[] } {
+  const sent: IMessage[] = [];
+  const sender: ISender = {
+    send: (msg: IMessage) => {
+      sent.push(msg);
+    },
+  };
+  return { sender, sent };
+}
 
 describe('Logger', () => {
-  beforeAll(() => {
-    global.Date = class {
-      constructor() {
-        return staticDate;
-      }
-    }
-  });
+  describe('constructor', () => {
+    it('creates a typed logging method for each configured log level', () => {
+      const levels = { foo: 1, bar: 2 };
+      const { sender, sent } = createSender();
+      const logger = createLogger(sender, levels);
 
-  afterAll(() => global.Date = origDate);
-  describe('constructor' , () => {
-    it ('creates a logger with my custom defined log levels', () => {
-      const levels = {
-        foo: 1,
-        bar: 2
-      };
-      const mockfn = jest.fn();
-      const sender = {
-        send: mockfn
-      };
-      const l = new Logger(sender, levels) as any;
-      // custom log functions are defined
-      expect(l.foo).toBeDefined();
-      expect(l.bar).toBeDefined();
-      expect(mockfn).not.toHaveBeenCalled();
+      logger.foo('foo');
+      assert.equal(sent.length, 1);
+      assert.equal(sent[0]?.logLevel, levels.foo);
+      assert.equal(sent[0]?.value, 'foo');
+      assert.deepEqual(sent[0]?.labels, {});
+      assert.ok(sent[0]?.timestamp instanceof Date);
 
-      // call custom log functions
-      l.foo('foo');
-      expect(mockfn).toHaveBeenCalledWith({
-        labels: {},
-        logLevel: levels.foo,
-        value: 'foo',
-        timestamp: staticDate
-      });
+      logger.bar('bar');
+      assert.equal(sent[1]?.logLevel, levels.bar);
+      assert.equal(sent[1]?.value, 'bar');
+    });
 
-      mockfn.mockClear();
-      l.bar('bar');
-      expect(mockfn).toHaveBeenCalledWith({
-        labels: {},
-        logLevel: levels.bar,
-        value: 'bar',
-        timestamp: staticDate
-      });
+    it('falls back to the default log levels when given null', () => {
+      const { sender, sent } = createSender();
+      const logger = new Logger(sender, null as unknown as ILogLevels);
+      const methods = logger as unknown as { info: (value: unknown) => void };
+
+      methods.info('hi');
+
+      assert.equal(sent[0]?.logLevel, 30);
+    });
+
+    it('throws when a log level name collides with an existing Logger method', () => {
+      const { sender } = createSender();
+
+      assert.throws(() => new Logger<ILogLevels>(sender, { labels: 1 }));
     });
   });
 
   describe('createLogFunction', () => {
-    it ('creates a logging function that logs at a particular log level with specific labels', () => {
-      const levels = { foo: 1, };
-      const mockfn = jest.fn();
-      const sender = {
-        send: mockfn
-      };
-      const l = new Logger(sender, levels);
+    it('creates a logging function that logs at a fixed level and labels', () => {
+      const { sender, sent } = createSender();
+      const logger = new Logger(sender, { foo: 1 });
       const myLabels = { app: 'myApp', tag: 'awesome' };
-      const myLoggingFn = l.createLogFunction(100, myLabels);
-      expect(mockfn).not.toHaveBeenCalled();
+      const myLoggingFn = logger.createLogFunction(100, myLabels);
+
       myLoggingFn('wow');
-      expect(mockfn).toHaveBeenCalledWith({
-        labels: myLabels,
-        logLevel: 100,
-        value: 'wow',
-        timestamp: staticDate
-      });
+
+      assert.equal(sent.length, 1);
+      assert.equal(sent[0]?.logLevel, 100);
+      assert.deepEqual(sent[0]?.labels, myLabels);
+      assert.equal(sent[0]?.value, 'wow');
     });
   });
 
-  describe('setLogLevel', () => {
-    it ('creates log functions on the logger that sends messages at the specified priorities', () => {
-      const levels = { foo: 1, bar: 2};
-      const mockfn = jest.fn();
-      const sender = {
-        send: mockfn
-      };
-      const l = new Logger(sender) as any;
-      expect(l.foo).toBeUndefined();
-      expect(l.bar).toBeUndefined();
-      l.setLogLevels(levels);
-      expect(l.foo).toBeDefined();
-      expect(l.bar).toBeDefined();
-      l.foo();
-      l.bar();
-      expect(mockfn).toHaveBeenCalled();
-      expect(mockfn.mock.calls.length).toBe(2);
-      expect(mockfn.mock.calls[0][0].logLevel).toBe(1);
-      expect(mockfn.mock.calls[1][0].logLevel).toBe(2);
+  describe('logLevels', () => {
+    it('returns the log levels used to create the logger', () => {
+      const { sender } = createSender();
+      const levels = { foo: 1, bar: 2 };
+      const logger = new Logger(sender, levels);
+
+      assert.deepEqual(logger.logLevels, levels);
     });
   });
 
-  describe('getLogLevels', () => {
-    it ('returns the log levels for the logger', () => {
-      const levels = { foo: 1, bar: 2};
-      const sender = { send: function() {} };
-      const l = new Logger(sender, levels);
-      expect(l.getLogLevels()).toEqual(levels);
-    });
-  });
+  describe('labels', () => {
+    it('applies the default labels to every message a log-level method sends', () => {
+      const { sender, sent } = createSender();
+      const logger = createLogger(sender, { foo: 1 });
 
-  describe('setLabels', () => {
-    it ('applies the defined labels to all sent messages', () => {
-      const levels = { foo: 1};
-      const sender = { send: jest.fn()};
-      const l = new Logger(sender, levels);
-      l.setLabels({app: 'awesome'});
-      (l as any).foo('message');
-      expect(sender.send).toHaveBeenCalled();
-      expect(sender.send.mock.calls[0][0].labels['app']).toBe('awesome');
-    });
-  });
+      logger.labels = { app: 'awesome' };
+      logger.foo('message');
 
-  describe('getLabels', () => {
-    it ('returns the default labels on the logger', () => {
-      const levels = { foo: 1};
-      const sender = { send: function() {}};
-      const labels = { app: 'awesome' };
-      const l = new Logger(sender, levels);
-      l.setLabels(labels);
-      expect(l.getLabels()).toEqual(labels);
+      assert.equal(sent[0]?.labels['app'], 'awesome');
+      assert.deepEqual(logger.labels, { app: 'awesome' });
     });
   });
 });
