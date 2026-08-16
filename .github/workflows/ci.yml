@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm run test:ci
+
+      - name: Upload Test Summary
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test-summary
+          path: junit.xml
+
+      - name: Test Report
+        uses: dorny/test-reporter@v3
+        if: always()
+        with:
+          name: Unit Tests
+          path: junit.xml
+          reporter: java-junit
+
+      - run: npm run check-release -- origin/${{ github.event.pull_request.base.ref }}

@@ -1,15 +1,16 @@
 {
   "compilerOptions": {
     "target": "esnext",
-    "module": "commonjs",
-    "declaration": true,
-    "outDir": "./dist",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "noEmit": true,
     "strict": true,
-    "noImplicitAny": false,
-    "noImplicitThis": false,
-    "esModuleInterop": true
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "rewriteRelativeImportExtensions": true,
+    "esModuleInterop": true,
+    "types": ["node"]
   },
-  "exclude": [
-    "**/__tests__"
-  ]
+  "include": ["src/**/*", "scripts/**/*"]
 }
