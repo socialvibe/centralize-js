@@ -349,7 +349,7 @@ describe('matchCondition', () => {
     assert.throws(() => stream.matchCondition('app', 'BAD' as MatchConditionOperator, 'my-app'));
   });
 
-  it('accepts operators in any case', () => {
+  it('accepts lowercase operators', () => {
     stream.matchCondition('app', 'not', 'my-app').addReceiver(receiver);
 
     stream.send(m1);

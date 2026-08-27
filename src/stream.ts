@@ -44,7 +44,7 @@ export class Stream {
   /**
    * matchCondition - creates a substream that only receives messages whose
    * label at `key` satisfies `operator` against `value`. The operator is
-   * case-insensitive.
+   * normalized to uppercase, so untyped callers may pass any casing.
    */
   matchCondition(key: string, operator: MatchConditionOperatorInput, value: unknown): Stream {
     return new MatchConditionStream(this, {
