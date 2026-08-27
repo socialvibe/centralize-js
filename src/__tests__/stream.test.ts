@@ -349,6 +349,16 @@ describe('matchCondition', () => {
     assert.throws(() => stream.matchCondition('app', 'BAD' as MatchConditionOperator, 'my-app'));
   });
 
+  it('accepts operators in any case', () => {
+    stream.matchCondition('app', 'not', 'my-app').addReceiver(receiver);
+
+    stream.send(m1);
+    stream.send(m2);
+    stream.send(m3);
+
+    assert.deepEqual(received, [m2, m3]);
+  });
+
   it('detaches from the parent stream once its last receiver is removed', (t) => {
     const removeReceiverSpy = t.mock.method(stream, 'removeReceiver');
     const remove = stream.matchCondition('app', 'IN', ['my-app']).addReceiver(receiver);

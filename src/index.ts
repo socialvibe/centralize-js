@@ -6,6 +6,7 @@ import type {
   ILabels,
   ILogLevels,
   MatchConditionOperator,
+  MatchConditionOperatorInput,
 } from './interfaces.ts';
 import { Stream } from './stream.ts';
 import LoggerClass, { createLogger, DEFAULT_LOG_LEVELS, createMessage } from './logger.ts';
@@ -62,6 +63,7 @@ export type {
   ILabels,
   ILogLevels,
   MatchConditionOperator,
+  MatchConditionOperatorInput,
   Stream,
   LogFunction,
   LogMethods,

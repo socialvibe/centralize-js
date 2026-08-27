@@ -1,6 +1,6 @@
 {
   "name": "@socialvibe/centralize",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A simple JS message hub",
   "type": "module",
   "main": "./dist/index.js",

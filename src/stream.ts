@@ -4,6 +4,7 @@ import type {
   IReceiver,
   IInterceptor,
   MatchConditionOperator,
+  MatchConditionOperatorInput,
 } from './interfaces.ts';
 
 /**
@@ -42,10 +43,15 @@ export class Stream {
 
   /**
    * matchCondition - creates a substream that only receives messages whose
-   * label at `key` satisfies `operator` against `value`
+   * label at `key` satisfies `operator` against `value`. The operator is
+   * case-insensitive.
    */
-  matchCondition(key: string, operator: MatchConditionOperator, value: unknown): Stream {
-    return new MatchConditionStream(this, { key, operator, value });
+  matchCondition(key: string, operator: MatchConditionOperatorInput, value: unknown): Stream {
+    return new MatchConditionStream(this, {
+      key,
+      operator: String(operator).toUpperCase() as MatchConditionOperator,
+      value,
+    });
   }
 
   /**
