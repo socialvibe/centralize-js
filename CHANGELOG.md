@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.0.1
+* [PI-3664](https://infillion.atlassian.net/browse/PI-3664): Restore case-insensitive `matchCondition()` operators
+  * v2.0.0 dropped the `operator.toUpperCase()` normalization v1.1.4 did, so `matchCondition('key', 'not', value)` threw "Invalid operator" instead of matching. `container_core` calls `matchCondition(TXM_LOG_HISTORY, 'not', true)` while constructing its log history at module load, so the whole container failed to import. Operators are normalized again, and the new `MatchConditionOperatorInput` type accepts the lowercase forms alongside the canonical uppercase ones.
+
 ## v2.0.0
 * [PI-3664](https://infillion.atlassian.net/browse/PI-3664): Modernize the toolchain (Node 24, TypeScript 7, `node:test`, GitHub Actions) and fix known bugs
   * **Breaking**: renamed the package to `@socialvibe/centralize`, published to GitHub Packages instead of the public npm registry as `centralize-js`. Consumers (e.g. `container_core`) need a coordinated follow-up update (dependency name, `.npmrc` registry auth, import sites).

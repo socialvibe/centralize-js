@@ -50,3 +50,10 @@ export interface IInterceptor {
  * MatchConditionOperator - the operators supported by Stream.matchCondition()
  */
 export type MatchConditionOperator = 'IN' | 'NOT_IN' | 'NOT';
+
+/**
+ * MatchConditionOperatorInput - an operator as accepted by
+ * Stream.matchCondition(), in either its canonical uppercase form or all
+ * lowercase
+ */
+export type MatchConditionOperatorInput = MatchConditionOperator | Lowercase<MatchConditionOperator>;
